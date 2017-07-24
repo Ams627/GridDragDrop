@@ -1,0 +1,17 @@
+﻿<Window x:Class="GridDragDrop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GridDragDrop"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+        <DataGrid x:Name="dg1" AutoGenerateColumns="False" ItemsSource="{Binding MyList}" AllowDrop="True" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding Name}" Header="Name"/>
+                <DataGridTextColumn Binding="{Binding Number}" Header="Number"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>
