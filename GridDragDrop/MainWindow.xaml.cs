@@ -15,7 +15,7 @@ namespace GridDragDrop
     public partial class MainWindow : Window
     {
         public List<X> MyList { get; set; }
-
+        bool deselecting = true;
         Point? _startPoint = null;
         public bool IsDragging { get; set; }
 
@@ -79,11 +79,35 @@ namespace GridDragDrop
                 var dg = s as DataGrid;
                 dg.Focus();
                 var DataGridRow = FindAnchestor<DataGridRow>((DependencyObject)e.OriginalSource);
-                DataGridRow.IsSelected = !DataGridRow.IsSelected;
-                
+                if (!DataGridRow.IsSelected)
+                {
+                    DataGridRow.IsSelected = true;
+                    deselecting = false;
+                }
+                else
+                {
+                    deselecting = true;
+                }
 
                 System.Diagnostics.Debug.WriteLine($"down: x={_startPoint.Value.X}, y={_startPoint.Value.Y}");
             };
+
+            dg1.PreviewMouseLeftButtonUp += (s, e) =>
+            {
+                _startPoint = e.GetPosition(null);
+                e.Handled = true;
+
+                var dg = s as DataGrid;
+                dg.Focus();
+                var DataGridRow = FindAnchestor<DataGridRow>((DependencyObject)e.OriginalSource);
+                if (deselecting)
+                {
+                    DataGridRow.IsSelected = false;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"down: x={_startPoint.Value.X}, y={_startPoint.Value.Y}");
+            };
+
 
             void StartDrag(MouseEventArgs e)
             {
