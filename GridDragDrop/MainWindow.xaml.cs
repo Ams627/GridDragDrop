@@ -4,6 +4,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Linq;
+using MvvmFoundation.Wpf;
 
 namespace GridDragDrop
 {
@@ -15,13 +17,20 @@ namespace GridDragDrop
     public partial class MainWindow : Window
     {
         public List<X> MyList { get; set; }
+        public List<X> MyList2 { get; set; }
         bool deselecting = true;
         Point? _startPoint = null;
         public bool IsDragging { get; set; }
 
+        public RelayCommand DropCommand { get; set; }
+
         public MainWindow()
         {
             InitializeComponent();
+            DropCommand = new RelayCommand(() =>
+            {
+                System.Diagnostics.Debug.WriteLine("Dropped");
+            });
             MyList = new List<X>
             {
                 new X { Name = "Fred", Number = 2 },
@@ -29,6 +38,8 @@ namespace GridDragDrop
                 new X { Name = "Sally", Number = 4 },
                 new X { Name = "Sheila", Number = 5 }
             };
+            MyList2 = new List<X>();
+
             this.DataContext = this;
             dg1.PreviewMouseMove += (s, e) =>
             {
@@ -36,14 +47,8 @@ namespace GridDragDrop
                 {
                     var dg = s as DataGrid;
                     var selected = dg.SelectedItems;
-                    foreach (var sel in selected)
-                    {
-                        Console.WriteLine($"selected: {((X)sel).Number}");
-                    }
 
-                    System.Diagnostics.Debug.WriteLine($"datagrid {(dg?.ToString() ?? "null")}");
                     Point mousePos = e.GetPosition(null);
-                    System.Diagnostics.Debug.WriteLine($"POS: x={mousePos.X}, y={mousePos.Y}");
 
                     Vector diff = _startPoint.Value - mousePos;
                     // test for the minimum displacement to begin the drag
@@ -51,22 +56,30 @@ namespace GridDragDrop
                         (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                         Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance))
                     {
-                        var DataGridRow = FindAnchestor<DataGridRow>((DependencyObject)e.OriginalSource);
+                        string dataToDrop = null;
+                        var grid = FindAnchestor<DataGrid>((DependencyObject)e.OriginalSource);
 
-                        if (DataGridRow == null)
-                            return;
-                        // Find the data behind the DataGridRow
-                        var dataTodrop = (X)dg.ItemContainerGenerator.
-                            ItemFromContainer(DataGridRow);
+                        if (grid != null)
+                        {
+                            var rows = grid.SelectedItems.Cast<X>();
+                            if (rows != null)
+                            {
+                                foreach (var row in rows)
+                                {
+                                    dataToDrop += row.Name + " " + row.Number.ToString() + "\n";
+                                }
+                            }
+                        }
 
-                        if (dataTodrop == null) return;
+                        if (dataToDrop != null)
+                        {
+                            // Initialize the drag & drop operation
+                            var dataObj = new DataObject(DataFormats.Text, dataToDrop);
+                            dataObj.SetData("DragSource", s);
+                            DragDrop.DoDragDrop(dg, dataObj, DragDropEffects.Copy);
+                        }
 
-                        // Initialize the drag & drop operation
-                        var dataObj = new DataObject(dataTodrop);
-                        dataObj.SetData("DragSource", s);
-                        DragDrop.DoDragDrop(dg, dataObj, DragDropEffects.Copy);
                         _startPoint = null;
-                        StartDrag(e);
                     }
                 }
             };
@@ -79,7 +92,7 @@ namespace GridDragDrop
                 var dg = s as DataGrid;
                 dg.Focus();
                 var DataGridRow = FindAnchestor<DataGridRow>((DependencyObject)e.OriginalSource);
-                if (!DataGridRow.IsSelected)
+                if (!DataGridRow?.IsSelected == true)
                 {
                     DataGridRow.IsSelected = true;
                     deselecting = false;
@@ -88,8 +101,6 @@ namespace GridDragDrop
                 {
                     deselecting = true;
                 }
-
-                System.Diagnostics.Debug.WriteLine($"down: x={_startPoint.Value.X}, y={_startPoint.Value.Y}");
             };
 
             dg1.PreviewMouseLeftButtonUp += (s, e) =>
@@ -100,20 +111,11 @@ namespace GridDragDrop
                 var dg = s as DataGrid;
                 dg.Focus();
                 var DataGridRow = FindAnchestor<DataGridRow>((DependencyObject)e.OriginalSource);
-                if (deselecting)
+                if (deselecting && DataGridRow != null)
                 {
                     DataGridRow.IsSelected = false;
                 }
-
-                System.Diagnostics.Debug.WriteLine($"down: x={_startPoint.Value.X}, y={_startPoint.Value.Y}");
             };
-
-
-            void StartDrag(MouseEventArgs e)
-            {
-                System.Diagnostics.Debug.WriteLine("Drag");
-            }
-
         }
 
         private static T FindAnchestor<T>(DependencyObject current) where T : DependencyObject
@@ -128,6 +130,11 @@ namespace GridDragDrop
             }
             while (current != null);
             return null;
+        }
+
+        private void dg2_Drop(object sender, DragEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("Dropped");
         }
     }
 }
